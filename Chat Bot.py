@@ -3,6 +3,8 @@ from model.inference import inference
 import discord
 from discord.ext import commands
 
+import os
+
 class ChatBot(commands.Bot):
     def __init__(self, command_prefix, self_bot=False):
         intents = discord.Intents.default()        
@@ -46,4 +48,4 @@ class ChatBot(commands.Bot):
 
 if __name__ == "__main__":
     bot = ChatBot(command_prefix="!")
-    bot.run("ODQzODg3MDU5NjA0ODY1MDY0.YKKZEQ.JNRzHrtPIIlaTFUKRGh5UwMUggM")
+    bot.run(os.getenv("TOKEN"))
