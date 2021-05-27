@@ -9,5 +9,6 @@ dependencies:
   - requests
   - cuda=10.0
   - discord
+  - dotenv
   - pip:
     - tensorflow-gpu>=1.12.0,==1.*

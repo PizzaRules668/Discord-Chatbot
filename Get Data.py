@@ -10,7 +10,7 @@ import bz2
 import os
 
 # Time Frame You Want To Download
-startDate = date(2009, 12, 1) # 2005 12 is the first available data
+startDate = date(2010, 1, 1) # 2005 12 is the first available data
 currentDate = startDate # Set The Date the is currently being downloaded to be the first date
 endDate = date(2013, 12, 1) # End of the time frame you want to download from
 
@@ -161,10 +161,9 @@ while currentDate != endDate:
     dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{currentDate.year}-{currentDate.month:02}.bz2", stream=True)
     # Download Data Stream 
     # Only good till 2017/11
-    totalDownloadSize = int(dataRequest.headers.get("content-lenght", 0))
+    totalDownloadSize = int(dataRequest.headers.get("Content-Length", 0))
     # Total Download Data Size
-
-    print(totalDownloadSize)
+    
     progressBar = tqdm(total=totalDownloadSize, unit="B", unit_scale=True, desc=f"File Download: {currentDate.year}-{currentDate.month:02}.bz2")
     dataBlockSize = 1024 # How often the progress bar updates
 

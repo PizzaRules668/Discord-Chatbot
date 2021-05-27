@@ -3,6 +3,7 @@ from model.inference import inference
 import discord
 from discord.ext import commands
 
+from dotenv import load_dotenv
 import os
 
 class ChatBot(commands.Bot):
@@ -47,5 +48,6 @@ class ChatBot(commands.Bot):
             
 
 if __name__ == "__main__":
+    load_dotenv()
     bot = ChatBot(command_prefix="!")
     bot.run(os.getenv("TOKEN"))
