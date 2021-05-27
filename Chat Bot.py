@@ -53,8 +53,4 @@ class ChatBot(commands.Bot):
 
 if __name__ == "__main__":
     bot = ChatBot(command_prefix="!")
-<<<<<<< HEAD
     bot.run(os.getenv("TOKEN"))
-=======
-    bot.run(os.getenv("TOKEN"))
->>>>>>> e9a66f20afd0520029b74b2cceb524d14cae466b
