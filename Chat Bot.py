@@ -1,7 +1,12 @@
 from model.inference import inference
 
+<<<<<<< HEAD
 from discord.ext import commands
 import discord
+=======
+import discord
+from discord.ext import commands
+>>>>>>> e9a66f20afd0520029b74b2cceb524d14cae466b
 
 import os
 
@@ -48,4 +53,8 @@ class ChatBot(commands.Bot):
 
 if __name__ == "__main__":
     bot = ChatBot(command_prefix="!")
-    bot.run("ODQzODg3MDU5NjA0ODY1MDY0.YKKZEQ.9jUV01Bm-UCnI9k70aJ29zszyec")
+<<<<<<< HEAD
+    bot.run(os.getenv("TOKEN"))
+=======
+    bot.run(os.getenv("TOKEN"))
+>>>>>>> e9a66f20afd0520029b74b2cceb524d14cae466b
