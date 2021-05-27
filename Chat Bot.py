@@ -1,12 +1,7 @@
 from model.inference import inference
 
-<<<<<<< HEAD
-from discord.ext import commands
-import discord
-=======
 import discord
 from discord.ext import commands
->>>>>>> e9a66f20afd0520029b74b2cceb524d14cae466b
 
 import os
 
