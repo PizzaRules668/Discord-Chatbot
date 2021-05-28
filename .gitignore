@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 
 *.db
+*.db-journal
 /reddit
 /model
 *.to
