@@ -1,15 +1,13 @@
-from dateutil.relativedelta import relativedelta
-from datetime import date
-from datetime import datetime
-from tqdm import tqdm
-import traceback
-import zstandard
-import requests
-import sqlite3
-import json
-import lzma
-import bz2
-import os
+from dateutil.relativedelta import relativedelta # Adding A Month To Current Date
+from datetime import date # Making Timeframe
+from tqdm import tqdm # Progress Bar
+import traceback # Better Error Messages
+import zstandard # ZST Compression
+import requests # Download Files
+import sqlite3 # File Database
+import json # Reading File data
+import lzma # XZ Compression
+import bz2 # BZ2 Compression
 
 PROGRESSBAR = False
 
