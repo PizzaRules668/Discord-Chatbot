@@ -25,16 +25,15 @@ sqlRequests = []
 def downloadData(timeframe):
     try:
         compressedData = b"" # Final Download Data, Compressed as BZ2, XZ, ZST
-        decompressedData = ""
-        fileType = ""
+        fileType = "" # File Type BZ2, XZ, ZST
 
-        if timeframe < date(2017, 11, 2):
+        if timeframe < date(2017, 11, 2): # If Timeframe is between 2005/12 - 2017/11 use bz2
             fileType = "bz2"
 
-        elif date(2017, 12, 1) <= timeframe <= date(2018, 10, 2):
+        elif date(2017, 12, 1) <= timeframe <= date(2018, 10, 2): # If Timeframe is between 2017/12 - 2018/12
             fileType = "xz"
 
-        elif timeframe > date(2018, 11, 1):
+        elif timeframe > date(2018, 11, 1): # If Timeframe is between 2018/11 - 2019/12
             fileType = "zst"
 
         if PROGRESSBAR:
