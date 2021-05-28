@@ -9,10 +9,12 @@ import json
 import bz2
 import os
 
+PROGRESSBAR = False
+
 # Time Frame You Want To Download
 startDate = date(2010, 1, 1) # 2005 12 is the first available data
 currentDate = startDate # Set The Date the is currently being downloaded to be the first date
-endDate = date(2013, 12, 1) # End of the time frame you want to download from
+endDate = date(2017, 11, 1) # End of the time frame you want to download from
 
 sqlConnection = sqlite3.connect("data.db")
 cursor = sqlConnection.cursor()
@@ -44,7 +46,7 @@ def replaceComment(commentID, parentID, parent, comment, subreddit, time, score)
 
 def replyToParent(commentID, parentID, parent, comment, subreddit, time, score):
     try:
-        request = f'INSERT INTO parentReply (parentID, commentID, parent, comment, subreddit, unix, score) VALUES ("{parentID}", "{commentID}", "{parent}", "{comment}", "{subreddit}", "{createdUTC}", "{score}");'
+        request = f'INSERT INTO parentReply (parentID, commentID, parent, comment, subreddit, unix, score) VALUES ("{parentID}", "{commentID}", "{parent}", "{comment}", "{subreddit}", "{time}", "{score}");'
         # Make Request TO Insert TO Database
         SQLTransaction(request)
         # Run Request
@@ -54,13 +56,13 @@ def replyToParent(commentID, parentID, parent, comment, subreddit, time, score):
 
 def noParent(commentID, parentID, comment, subreddit, time, score):
     try:
-        request = f'INSERT INTO parentReply (parentID, commentID, comment, subreddit, unix, score) VALUES ("{parentID}","{commentID}", "{comment}", "{subreddit}", "{createdUTC}", "{score}");'
+        request = f'INSERT INTO parentReply (parentID, commentID, comment, subreddit, unix, score) VALUES ("{parentID}","{commentID}", "{comment}", "{subreddit}", "{time}", "{score}");'
         # Make Request TO Insert TO Database
         SQLTransaction(request)
         # Run Request
     
     except Exception as e:
-        print(f"Error in No Parent: {e}")
+        print(f"Error in Add No Parent: {e}")
 
 def formatData(data):
     return data.replace("\n", "newlinechar").replace("\r", "newlinechar").replace("'", '"')
@@ -121,6 +123,7 @@ pairedRowCounter = 0
 clearUp = 1000000
 
 def processData(line):
+    global pairedRowCounter, rowCounter
     try:
         # For Line in the downloaded Data
         data = json.loads(line) # Turn string to json object
@@ -158,19 +161,26 @@ while currentDate != endDate:
     compressedData = b"" # Final Download Data, Compressed as BZ2
     decompressedData = ""
 
-    dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{currentDate.year}-{currentDate.month:02}.bz2", stream=True)
-    # Download Data Stream 
-    # Only good till 2017/11
-    totalDownloadSize = int(dataRequest.headers.get("Content-Length", 0))
-    # Total Download Data Size
-    
-    progressBar = tqdm(total=totalDownloadSize, unit="B", unit_scale=True, desc=f"File Download: {currentDate.year}-{currentDate.month:02}.bz2")
-    dataBlockSize = 1024 # How often the progress bar updates
+    if PROGRESSBAR:
+        dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{currentDate.year}-{currentDate.month:02}.bz2", stream=True)
+        # Download Data Stream 
+        # Only good till 2017/11
+        totalDownloadSize = int(dataRequest.headers.get("Content-Length", 0))
+        # Total Download Data Size
+        
+        progressBar = tqdm(total=totalDownloadSize, unit="B", unit_scale=True, desc=f"File Download: {currentDate.year}-{currentDate.month:02}.bz2")
+        dataBlockSize = 1024 # How often the progress bar updates
 
-    for data in dataRequest.iter_content(dataBlockSize):
-        progressBar.update(len(data)) # Update Progress Bar by size of data
-        compressedData += data # Add Current Data to the currentData var
-    progressBar.close() # Stop Progress Bar
+        for data in dataRequest.iter_content(dataBlockSize):
+            progressBar.update(len(data)) # Update Progress Bar by size of data
+            compressedData += data # Add Current Data to the currentData var
+        progressBar.close() # Stop Progress Bar
+
+    else:
+        print(f"Downloading: {currentDate.year}-{currentDate.month:02}")
+        dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{currentDate.year}-{currentDate.month:02}.bz2")
+        compressedData = dataRequest.content
+        # Download Data
 
     # Time to Process All of the Data
     cursor.execute("CREATE TABLE IF NOT EXISTS parentReply(parentID TEXT PRIMARY KEY, commentID TEXT UNIQUE, parent TEXT, comment TEXT, subreddit TEXT, unix INT, score INT)")
