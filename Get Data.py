@@ -57,7 +57,7 @@ def downloadData(timeframe):
             print(f"Downloading: {timeframe.year}-{timeframe.month:02}")
             dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}")
             compressedData = dataRequest.content
-            del request
+            del dataRequest
             # Download Data
 
         print("Done Downloading, Starting to Decompresss Data")
