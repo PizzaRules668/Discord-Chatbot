@@ -1,53 +1,34 @@
-from model.inference import inference
+from model.inference import inference # Used to get reply
+from discord.ext.commands import Bot # Discord Bot 
+from dotenv import load_dotenv # Load Secret Keys
+import os # Used to Get Secret Keys
 
-import discord
-from discord.ext import commands
-
-from dotenv import load_dotenv
-import os
-
-class ChatBot(commands.Bot):
+class ChatBot(Bot): # Make Bot
     def __init__(self, command_prefix, self_bot=False):
-        intents = discord.Intents.default()        
-        commands.Bot.__init__(self, command_prefix=command_prefix, self_bot=self_bot, intents=intents)
+        Bot.__init__(self, command_prefix=command_prefix, self_bot=self_bot) # Init Bot 
     
-        self.registerEvents()
+        self.registerEvents() # Register All Discord Events that we are going to us (on_message)
 
-    async def on_ready(self):
-        print("Bot is now Online")
-        self.chatbotChannel = self.get_channel(847229394313150516)
-        #await self.chatbotChannel.send("Now Online")
+    async def on_ready(self): # When Bot is ready
+        print("Bot is now Online") # Print bot is online
+        self.chatbotChannel = self.get_channel(847229394313150516) # Get channel you want the bot to only use
 
-    def registerEvents(self):
+    def registerEvents(self): # Function to Register All Events that were going to user
         @self.event
-        async def on_message(message):
-            await self.process_commands(message)
-            if message.author != self.user:
-                if message.channel != self.chatbotChannel:
-                    return
-
-                else:
+        async def on_message(message): # Register On Message Event
+            if message.author != self.user: # If message not from user
+                try:
+                    answers = inference(message.content) # Inference on message content  
                     try:
-                        content = message.content
-                        # Send Content to Model
-                        # Reply to message with output from Model
+                        await message.reply(answers["answers"][answers["best_index"]]) # Try and get the best message
+                    except:
+                        await message.reply(answers["answers"][0]) # Else Get the first answer
 
-                        answers = inference(content)
+                except Exception as e: # If error
+                    await message.channel.send("**ERROR** Please Check Console") # 
+                    print(f"Error: {e}")
 
-                        try:
-                            await message.channel.send(answers["answers"][answers["best_index"]])
-                        except:
-                            await message.channel.send(answers["answers"][0])
-
-                    except Exception as e:
-                        await message.reply("**ERROR** Please Check Console")
-                        print(f"Error: {e}")
-
-            else:
-                return
-            
-
+load_dotenv()
 if __name__ == "__main__":
-    load_dotenv()
     bot = ChatBot(command_prefix="!")
     bot.run(os.getenv("TOKEN"))

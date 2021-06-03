@@ -1,26 +1,30 @@
 from dateutil.relativedelta import relativedelta # Adding A Month To Current Date
 from datetime import date # Making Timeframe
+
 from tqdm import tqdm # Progress Bar
 import traceback # Better Error Messages
-import zstandard # ZST Compression
+
 import requests # Download Files
 import sqlite3 # File Database
 import json # Reading File data
+
+import zstandard # ZST Compression
 import lzma # XZ Compression
 import bz2 # BZ2 Compression
 
-PROGRESSBAR = False
+PROGRESSBAR = False # Downloading Progress Bar
+outOfMemory = False  # Init Out of Memory Flag
 
 # Time Frame You Want To Download
-startDate = date(2005, 12, 1) # 2005 12 is the first available data
+startDate = date(2012, 9, 1) # 2005 12 is the first available data
 currentDate = startDate # Set The Date the is currently being downloaded to be the first date
-endDate = date(2006, 1, 1) # End of the time frame you want to download from
+endDate = date(2012, 12, 1) # End of the time frame you want to download from
 
 sqlConnection = sqlite3.connect("data.db")
 cursor = sqlConnection.cursor()
 sqlRequests = []
 
-def downloadData(timeframe):
+def downloadData(timeframe): 
     try:
         compressedData = b"" # Final Download Data, Compressed as BZ2, XZ, ZST
         fileType = "" # File Type BZ2, XZ, ZST
@@ -53,8 +57,10 @@ def downloadData(timeframe):
             print(f"Downloading: {timeframe.year}-{timeframe.month:02}")
             dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}")
             compressedData = dataRequest.content
+            del request
             # Download Data
 
+        print("Done Downloading, Starting to Decompresss Data")
         if fileType == "bz2":
             return bz2.decompress(compressedData)
 
@@ -65,21 +71,23 @@ def downloadData(timeframe):
             return zstandard.decompress(compressedData)
 
     except MemoryError: # If you run out of memeory/ram
-        del decompressedData # Delete the current Decompressed Data
+        #del decompressedData # Delete the current Decompressed Data
+        outOfMemory = True  # Set Out of Memory Flag
         print("Out of Memory")
         open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "wb").write(compressedData) # Open file your going to right in 
 
+        print("Done Downloading, Starting to Decompresss Data")
         if fileType == "bz2":
             file = bz2.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as BZ2 object
-            return file.read()
+            return file
 
         elif fileType == "xz":        
             file = lzma.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as XZ object
-            return file.read()
+            return file
 
         elif fileType == "zst":
             file = zstandard.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as ZST object
-            return file.read()
+            return file
 
 
 def SQLTransaction(request):
@@ -187,7 +195,6 @@ clearUp = 1000000
 def processData(line):
     global pairedRowCounter, rowCounter
     try:
-        # For Line in the downloaded Data
         data = json.loads(line) # Turn string to json object
         parentID = data["parent_id"].split("_")[1] # Get Parent Message ID
         content = formatData(data["body"]) # Get Message Content after being formated
@@ -219,20 +226,35 @@ def processData(line):
             cursor.execute("VACUUM")
             sqlConnection.commit()
 
+    del line
+
 while currentDate != endDate:
     # Time to Process All of the Data
     cursor.execute("CREATE TABLE IF NOT EXISTS parentReply(parentID TEXT PRIMARY KEY, commentID TEXT UNIQUE, parent TEXT, comment TEXT, subreddit TEXT, unix INT, score INT)")
     # Create Table if it does not exist
     startRow = 0
 
-    print("Done Downloading, Starting To Decompress")
     decompressedData = downloadData(currentDate)
-    for line in tqdm(decompressedData.splitlines(), desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
-        rowCounter += 1 # Increment Row Counter 
-        if rowCounter > startRow:
-            processData(line)
+    print("Done Decompressing, Starting to enter into database")
+    if outOfMemory:
+        for line in tqdm(decompressedData, desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
+        # For Line in the downloaded Data
+            rowCounter += 1 # Increment Row Counter 
+            if rowCounter > startRow:
+                processData(line)
 
-    del decompressedData
+        del decompressedData
+
+    else:
+        for line in tqdm(decompressedData.splitlines(), desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
+        # For Line in the downloaded Data
+            rowCounter += 1 # Increment Row Counter 
+            if rowCounter > startRow:
+                processData(line)
+
+        del decompressedData
+
+    outOfMemory = False # Reset Out of Memory Flag
 
     currentDate += relativedelta(months=+1) # Add One Month To Current Date
     print(f"Total Rows Read: {rowCounter}\nPaired Rows: {pairedRowCounter}") # Print Total Line Read, And Total Lines Paired

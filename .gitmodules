@@ -1,6 +1,3 @@
 [submodule "nmt-chatbot"]
 	path = nmt-chatbot
 	url = https://github.com/daniel-kukiela/nmt-chatbot
-[submodule "nmt_chatbot"]
-	path = nmt_chatbot
-	url = https://github.com/daniel-kukiela/nmt-chatbot
