@@ -16,7 +16,7 @@ PROGRESSBAR = False # Downloading Progress Bar
 outOfMemory = False  # Init Out of Memory Flag
 
 # Time Frame You Want To Download
-startDate = date(2012, 9, 1) # 2005 12 is the first available data
+startDate = date(2012, 11, 1) # 2005 12 is the first available data
 currentDate = startDate # Set The Date the is currently being downloaded to be the first date
 endDate = date(2012, 12, 1) # End of the time frame you want to download from
 

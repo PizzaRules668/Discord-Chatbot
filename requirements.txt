@@ -1,8 +1,0 @@
-tqdm
-colorama
-regex
-python-Levenshtein
-requests
-discord
-tensorflow-gpu>=1.12.0,==1.*
-zstandard

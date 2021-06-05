@@ -42,5 +42,5 @@ if __name__ == "__main__": # If file not imported
         if counter % 20 == 0: # If the counter modulo of 20 is 0 
             print(counter*limit, " rows completed so far") # Print counter*limit
 
-shutil.copy("nmt-chatbot/new_data/tst2012.from", "nmt-chatbot/new_data/tst2013.from") # Copy tst2012.from to tst2013.from
-shutil.copy("nmt-chatbot/new_data/tst2012.to", "nmt-chatbot/new_data/tst2013.to") # Copy tst2012.to to tst2013.to
+    shutil.copy("nmt_chatbot/new_data/tst2012.from", "nmt_chatbot/new_data/tst2013.from") # Copy tst2012.from to tst2013.from
+    shutil.copy("nmt_chatbot/new_data/tst2012.to", "nmt_chatbot/new_data/tst2013.to") # Copy tst2012.to to tst2013.to

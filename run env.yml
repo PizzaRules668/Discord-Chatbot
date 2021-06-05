@@ -2,13 +2,10 @@ name: DiscordChatBot
 
 dependencies:
   - python=3.7
-  - tqdm
   - colorama
   - regex
   - python-Levenshtein
-  - requests
   - pip:
     - tensorflow>=1.12.0,==1.*
-    - zstandard
     - discord
-    - dotenv
+    - python-dotenv
