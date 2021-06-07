@@ -136,4 +136,5 @@ dmypy.json
 *.to
 *.from
 /.vscode
+*.mp3
 modded Get Data.py
