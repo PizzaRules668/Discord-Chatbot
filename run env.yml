@@ -11,5 +11,6 @@ dependencies:
     - discord
     - python-dotenv
     - tqdm
-    - pyttsx3
+    - gTTS
     - PyNaCl
+    - deepspeech
