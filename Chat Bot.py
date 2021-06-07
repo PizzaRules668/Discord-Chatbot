@@ -15,6 +15,7 @@ class ChatBot(Bot): # Make Bot
 
         self.inVC = False
         self.vc = None
+        self.userInVC = None
 
     async def on_ready(self): # When Bot is ready
         print("Bot is now Online") # Print bot is online
@@ -26,25 +27,22 @@ class ChatBot(Bot): # Make Bot
             if message.author != self.user and not message.content.startswith("!"): # If message not from user
                 try:
                     answers = inference(message.content) # Inference on message content  
-                    if not self.inVC:
+                    if self.inVC and self.userInVC == message.author: # If from user that is in vc
+                        try:
+                            tts = gTTS(text=answers["answers"][answers["best_index"]], lang="en") # Turn into tts object
+                            tts.save("message.mp3") # Save as .MP3
+
+                        except Exception as e:
+                            tts = gTTS(text=answers["answers"][0], lang="en") # Turn into tts object
+                            tts.save("message.mp3") # Save as .MP3
+                        
+                        self.vc.play(discord.FFmpegPCMAudio(source="message.mp3")) # Play the .MP3 rile that we saved
+
+                    else:
                         try:
                             await message.reply(answers["answers"][answers["best_index"]]) # Try and get the best message
                         except:
-                            await message.reply(answers["answers"][0]) # Else Get the first answer
-
-                    elif self.inVC:
-                        try:
-                            tts = gTTS(text=answers["answers"][answers["best_index"]], lang="en")
-                            tts.save("message.mp3")
-
-                        except Exception as e:
-                            print(e)
-                            tts = gTTS(text=answers["answers"][0], lang="en")
-                            tts.save("message.mp3")
-                            
-                        
-                        self.vc.play(discord.FFmpegPCMAudio(source="message.mp3"))
-                        os.remove("message.mp3")
+                            await message.reply(answers["answers"][0]) # Try and get the first message
 
                 except Exception as e: # If error
                     await message.channel.send("**ERROR** Please Check Console")
@@ -58,6 +56,7 @@ class ChatBot(Bot): # Make Bot
 
             else:
                 self.vc = await message.author.voice.channel.connect()
+                self.userInVC = message.author
                 self.inVC = True
 
         @self.command()
@@ -65,6 +64,9 @@ class ChatBot(Bot): # Make Bot
             if not self.inVC:
                 return
 
+            self.vc = None
+            self.inVC = False
+            self.userInVC = None
             await message.guild.voice_client.disconnect()
 
 load_dotenv()
