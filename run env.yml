@@ -5,7 +5,12 @@ dependencies:
   - colorama
   - regex
   - python-Levenshtein
+  - ffmpeg
   - pip:
     - tensorflow>=1.12.0,==1.*
     - discord
     - python-dotenv
+    - tqdm
+    - gTTS
+    - PyNaCl
+    - deepspeech
