@@ -36,7 +36,7 @@ class ChatBot(Bot): # Make Bot
                             tts = gTTS(text=answers["answers"][0], lang="en") # Turn into tts object
                             tts.save("message.mp3") # Save as .MP3
                         
-                        self.vc.play(discord.FFmpegPCMAudio(source="message.mp3")) # Play the .MP3 rile that we saved
+                        self.vc.play(discord.FFmpegPCMAudio(source="message.mp3")) # Play the .MP3 file that we saved
 
                     else:
                         try:
@@ -48,28 +48,28 @@ class ChatBot(Bot): # Make Bot
                     await message.channel.send("**ERROR** Please Check Console")
                     print(f"Error: {e}")
 
-    def registerCommands(self):
+    def registerCommands(self): # Register all commands
         @self.command()
-        async def join(message):
-            if message.author.voice is None:
+        async def join(message): 
+            if message.author.voice is None: # Make sure the user is in the voice channel
                 await message.reply("You Must Be In Voice Channel")
 
             else:
-                self.vc = await message.author.voice.channel.connect()
-                self.userInVC = message.author
-                self.inVC = True
+                self.vc = await message.author.voice.channel.connect() # Connect bot to the voice channel
+                self.userInVC = message.author # Set user that is also in the voice channel
+                self.inVC = True # 
 
         @self.command()
         async def leave(message):
-            if not self.inVC:
+            if not self.inVC: # Check to see if it in a voice channel
                 return
 
-            self.vc = None
+            self.vc = None # Reset All voice channel related variables
             self.inVC = False
             self.userInVC = None
-            await message.guild.voice_client.disconnect()
+            await message.guild.voice_client.disconnect() # Leave voice channel
 
-load_dotenv()
+load_dotenv() # Init module to load from .env
 if __name__ == "__main__":
-    bot = ChatBot(command_prefix="!")
-    bot.run(os.getenv("TOKEN"))
+    bot = ChatBot(command_prefix="!") # Init bot with prefix of !
+    bot.run(os.getenv("TOKEN")) # Start bot with token grabbed from .env
