@@ -3,6 +3,7 @@ from datetime import date # Making Timeframe
 
 from tqdm import tqdm # Progress Bar
 import traceback # Better Error Messages
+import io # For looping through zstandard file
 
 import requests # Download Files
 import sqlite3 # File Database
@@ -16,15 +17,18 @@ PROGRESSBAR = False # Downloading Progress Bar
 outOfMemory = False  # Init Out of Memory Flag
 
 # Time Frame You Want To Download
-startDate = date(2012, 11, 1) # 2005 12 is the first available data
+startDate = date(2018, 10, 1) # 2005 12 is the first available data
 currentDate = startDate # Set The Date the is currently being downloaded to be the first date
-endDate = date(2012, 12, 1) # End of the time frame you want to download from
+endDate = date(2019, 12, 1) # End of the time frame you want to download from
 
 sqlConnection = sqlite3.connect("data.db")
 cursor = sqlConnection.cursor()
 sqlRequests = []
 
+fileType = ""
+
 def downloadData(timeframe): 
+    global fileType
     try:
         compressedData = b"" # Final Download Data, Compressed as BZ2, XZ, ZST
         fileType = "" # File Type BZ2, XZ, ZST
@@ -32,16 +36,15 @@ def downloadData(timeframe):
         if timeframe < date(2017, 11, 2): # If Timeframe is between 2005/12 - 2017/11 use bz2
             fileType = "bz2"
 
-        elif date(2017, 12, 1) <= timeframe <= date(2018, 10, 2): # If Timeframe is between 2017/12 - 2018/12
+        elif date(2017, 12, 1) <= timeframe <= date(2018, 9, 2): # If Timeframe is between 2017/12 - 2018/12
             fileType = "xz"
 
-        elif timeframe > date(2018, 11, 1): # If Timeframe is between 2018/11 - 2019/12
+        elif timeframe >= date(2018, 10, 1): # If Timeframe is between 2018/11 - 2019/12
             fileType = "zst"
 
         if PROGRESSBAR:
             dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}", stream=True)
-            # Download Data Stream 
-            # Only good till 2017/11
+            # Download Data Stream
             totalDownloadSize = int(dataRequest.headers.get("Content-Length", 0))
             # Total Download Data Size
             
@@ -78,16 +81,16 @@ def downloadData(timeframe):
 
         print("Done Downloading, Starting to Decompresss Data")
         if fileType == "bz2":
-            file = bz2.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as BZ2 object
-            return file
+            return bz2.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as BZ2 object
 
         elif fileType == "xz":        
-            file = lzma.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as XZ object
-            return file
+            return lzma.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as XZ object
 
         elif fileType == "zst":
-            file = zstandard.open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as ZST object
-            return file
+            return open(f"reddit/{currentDate.year}-{currentDate.month:02}.{fileType}", "rb") # Reopen it as ZST object
+
+    except Exception as e:
+        print(f"Error: downloadData\n {e}")
 
 
 def SQLTransaction(request):
@@ -206,9 +209,10 @@ def processData(line):
         # Check to see is parent is already replyed to and get reply score
         parentReplyScore = getParentReplyScore(parentID)
         if parentReplyScore: # If has reply
-            if score > int(parentReplyScore): # If Score is greater than existing parent reply
-                if acceptable(content): # Check to see if data is acceptable
-                    replaceComment(commentID, parentID, parentContent, content, subreddit, createdUTC, score)
+            if score != 0: # If score is not none
+                if score > int(parentReplyScore): # If Score is greater than existing parent reply
+                    if acceptable(content): # Check to see if data is acceptable
+                        replaceComment(commentID, parentID, parentContent, content, subreddit, createdUTC, score)
         else:
             if parentContent:
                 if score >= 2:
@@ -237,15 +241,26 @@ while currentDate != endDate:
     decompressedData = downloadData(currentDate)
     print("Done Decompressing, Starting to enter into database")
     if outOfMemory:
-        for line in tqdm(decompressedData, desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
-        # For Line in the downloaded Data
-            rowCounter += 1 # Increment Row Counter 
-            if rowCounter > startRow:
-                processData(line)
+        if fileType == "zst": # If out of memory and is zstandard file
+            dctx = zstandard.ZstdDecompressor() # Make zst decompressor
+            reader = dctx.stream_reader(decompressedData, read_size=8192) # Make reader object
+            
+            print("Done Decompressing, Starting to enter into database")
+            for line in tqdm(io.TextIOWrapper(reader, encoding='utf-8'), desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
+                # For Line in the downloaded Data
+                rowCounter += 1 # Increment Row Counter 
+                if rowCounter > startRow:
+                    processData(line)
 
-        del decompressedData
+        else: # If out of memory and not zst object
+            print("Done Decompressing, Starting to enter into database")
+            for line in tqdm(decompressedData, desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
+            # For Line in the downloaded Data
+                rowCounter += 1 # Increment Row Counter 
+                if rowCounter > startRow:
+                    processData(line)
 
-    else:
+    else: # If not out of memory
         for line in tqdm(decompressedData.splitlines(), desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
         # For Line in the downloaded Data
             rowCounter += 1 # Increment Row Counter 

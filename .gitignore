@@ -129,8 +129,6 @@ dmypy.json
 .pyre/
 
 # Other files made or needed for this project
-*.db
-*.db-journal
 /reddit
 /model
 *.to
@@ -138,3 +136,10 @@ dmypy.json
 /.vscode
 *.mp3
 modded Get Data.py
+
+# Data files
+*.db
+*.db-journal
+*.bz2
+*.xz
+*.zst
