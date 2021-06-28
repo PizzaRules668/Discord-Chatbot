@@ -14,12 +14,13 @@ import lzma # XZ Compression
 import bz2 # BZ2 Compression
 
 PROGRESSBAR = False # Downloading Progress Bar
-outOfMemory = False  # Init Out of Memory Flag
+outOfMemory = False # Init Out of Memory Flag
+dailyUpdates = False # True if date is 2020-01-01 or after
 
 # Time Frame You Want To Download
-startDate = date(2018, 10, 1) # 2005 12 is the first available data
+startDate = date(2020, 1, 1) # 2005 12 is the first available data
 currentDate = startDate # Set The Date the is currently being downloaded to be the first date
-endDate = date(2019, 12, 1) # End of the time frame you want to download from
+endDate = date(2020, 5, 8) # End of the time frame you want to download from
 
 sqlConnection = sqlite3.connect("data.db")
 cursor = sqlConnection.cursor()
@@ -30,35 +31,50 @@ fileType = ""
 def downloadData(timeframe): 
     global fileType
     try:
+        url = "" # Setup request URL
         compressedData = b"" # Final Download Data, Compressed as BZ2, XZ, ZST
         fileType = "" # File Type BZ2, XZ, ZST
 
         if timeframe < date(2017, 11, 2): # If Timeframe is between 2005/12 - 2017/11 use bz2
+            dailyUpdates = False
             fileType = "bz2"
+            url = f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}"
 
         elif date(2017, 12, 1) <= timeframe <= date(2018, 9, 2): # If Timeframe is between 2017/12 - 2018/12
+            dailyUpdates = False
             fileType = "xz"
+            url = f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}"
 
-        elif timeframe >= date(2018, 10, 1): # If Timeframe is between 2018/11 - 2019/12
+        elif date(2018, 10, 1) <= timeframe <= date(2019, 12, 1): # If Timeframe is between 2018/10 - 2019/12
+            dailyUpdates = False
             fileType = "zst"
+            url = f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}"
+
+        elif date(2020, 1, 1) <= timeframe <= date(2020, 5, 8): # If Timeframe is between 2020/1-1 - 2020/5-8
+            dailyUpdates = True
+            fileType = "zst"
+            url = f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}-{timeframe.day:02}.{fileType}"
 
         if PROGRESSBAR:
-            dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}", stream=True)
-            # Download Data Stream
-            totalDownloadSize = int(dataRequest.headers.get("Content-Length", 0))
-            # Total Download Data Size
-            
-            progressBar = tqdm(total=totalDownloadSize, unit="B", unit_scale=True, desc=f"File Download: {timeframe.year}-{timeframe.month:02}.{fileType}")
-            dataBlockSize = 1024 # How often the progress bar updates
+            try:
+                dataRequest = requests.get(url, stream=True)
+                # Download Data Stream
+                totalDownloadSize = int(dataRequest.headers.get("Content-Length", 0))
+                # Total Download Data Size
+                
+                progressBar = tqdm(total=totalDownloadSize, unit="B", unit_scale=True, desc=f"File Download: {timeframe.year}-{timeframe.month:02}-{timeframe.day:02}.{fileType}")
+                dataBlockSize = 1024 # How often the progress bar updates
 
-            for data in dataRequest.iter_content(dataBlockSize):
-                progressBar.update(len(data)) # Update Progress Bar by size of data
-                compressedData += data # Add Current Data to the currentData var
-            progressBar.close() # Stop Progress Bar
+                for data in dataRequest.iter_content(dataBlockSize):
+                    progressBar.update(len(data)) # Update Progress Bar by size of data
+                    compressedData += data # Add Current Data to the currentData var
+                progressBar.close() # Stop Progress Bar
+            except KeyboardInterrupt:
+                pass
 
         else:
             print(f"Downloading: {timeframe.year}-{timeframe.month:02}")
-            dataRequest = requests.get(f"https://files.pushshift.io/reddit/comments/RC_{timeframe.year}-{timeframe.month:02}.{fileType}")
+            dataRequest = requests.get(url)
             compressedData = dataRequest.content
             del dataRequest
             # Download Data
@@ -254,15 +270,15 @@ while currentDate != endDate:
 
         else: # If out of memory and not zst object
             print("Done Decompressing, Starting to enter into database")
-            for line in tqdm(decompressedData, desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
+            for line in tqdm(decompressedData, desc=f"Lines in {currentDate.year}-{currentDate.month:02}-{currentDate.day:02}"):
             # For Line in the downloaded Data
                 rowCounter += 1 # Increment Row Counter 
                 if rowCounter > startRow:
                     processData(line)
 
     else: # If not out of memory
-        for line in tqdm(decompressedData.splitlines(), desc=f"Lines in {currentDate.year}-{currentDate.month:02}"):
-        # For Line in the downloaded Data
+        for line in tqdm(decompressedData.splitlines(), desc=f"Lines in {currentDate.year}-{currentDate.month:02}-{currentDate.day:02}"):
+            # For Line in the downloaded Data
             rowCounter += 1 # Increment Row Counter 
             if rowCounter > startRow:
                 processData(line)
@@ -271,7 +287,13 @@ while currentDate != endDate:
 
     outOfMemory = False # Reset Out of Memory Flag
 
-    currentDate += relativedelta(months=+1) # Add One Month To Current Date
+    if not dailyUpdates:
+        currentDate += relativedelta(months=+1) # Add One Month To Current Date
+
+    elif dailyUpdates:
+        currentDate += relativedelta(day=+1) # Add One Day To Current Date
+        dailyUpdates = False
+
     print(f"Total Rows Read: {rowCounter}\nPaired Rows: {pairedRowCounter}") # Print Total Line Read, And Total Lines Paired
 
 print(f"Total Rows Read: {rowCounter}\nPaired Rows: {pairedRowCounter}") # Print Total Line Read, And Total Lines Paired
